@@ -1,0 +1,70 @@
+def process_image(img, scale):
+    # Konwersja obrazu z przestrzeni BGR (domyślnej w OpenCV) do YUV
+    yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+    
+    # Rozdzielenie obrazu YUV na osobne kanały: Y - jasność, U i V - kolor
+    y, u, v = cv2.split(yuv)
+    
+    # Pobranie oryginalnych wymiarów obrazu
+    h, w = y.shape
+
+    # Obliczenie nowych wymiarów po zmniejszeniu (skalowaniu)
+    new_size = (int(w * scale), int(h * scale))
+
+    # Zmniejszenie każdego kanału do nowych wymiarów (utrata szczegółów)
+    y_small = cv2.resize(y, new_size, interpolation=cv2.INTER_AREA)
+    u_small = cv2.resize(u, new_size, interpolation=cv2.INTER_AREA)
+    v_small = cv2.resize(v, new_size, interpolation=cv2.INTER_AREA)
+
+    # Powiększenie kanałów z powrotem do oryginalnych wymiarów
+    y_resized = cv2.resize(y_small, (w, h), interpolation=cv2.INTER_LINEAR)
+    u_resized = cv2.resize(u_small, (w, h), interpolation=cv2.INTER_LINEAR)
+    v_resized = cv2.resize(v_small, (w, h), interpolation=cv2.INTER_LINEAR)
+
+    # Utworzenie obrazu z rozmytym kanałem Y i oryginalnymi U, V (utrata szczegółów jasności)
+    yuv_y_blur = cv2.merge((y_resized, u, v))
+    rgb_y_blur = cv2.cvtColor(yuv_y_blur, cv2.COLOR_YUV2RGB)  # Konwersja na RGB do wyświetlenia
+
+    # Utworzenie obrazu z oryginalnym Y i rozmytymi kanałami U, V (utrata koloru)
+    yuv_uv_blur = cv2.merge((y, u_resized, v_resized))
+    rgb_uv_blur = cv2.cvtColor(yuv_uv_blur, cv2.COLOR_YUV2RGB)  # Konwersja do RGB
+
+    # Konwersja oryginalnego obrazu z BGR do RGB (do poprawnego wyświetlania przez matplotlib)
+    rgb_original = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    # Zwrócenie trzech obrazów:
+    # 1. Oryginalny
+    # 2. Z rozmytym Y (jasnością)
+    # 3. Z rozmytym UV (kolorem)
+    return rgb_original, rgb_y_blur, rgb_uv_blur
+
+
+def main():
+    scale = 0.07  # Skala zmniejszenia obrazu (7% oryginalnego rozmiaru)
+
+    # Wczytanie obrazu z pliku (w formacie BGR)
+    img = cv2.imread('fruits.png')
+
+    # Przetworzenie obrazu i uzyskanie trzech wersji
+    original, y_scaled_img, uv_scaled_img = process_image(img, scale)
+
+    # Tworzenie okna z 3 podwykresami (obrazami)
+    plt.figure(figsize=(15, 5))
+
+    # Wyświetlenie oryginalnego obrazu
+    plt.subplot(1, 3, 1)
+    plt.imshow(original)
+    plt.title('Input')
+
+    # Wyświetlenie obrazu z rozmytym kanałem Y
+    plt.subplot(1, 3, 2)
+    plt.imshow(y_scaled_img)
+    plt.title('Scaled Y')
+
+    # Wyświetlenie obrazu z rozmytym kolorem (UV)
+    plt.subplot(1, 3, 3)
+    plt.imshow(uv_scaled_img)
+    plt.title('Scaled UV')
+
+    # Wyświetlenie wszystkich obrazów na ekranie
+    plt.show()
