@@ -1,0 +1,80 @@
+import cv2                              # import biblioteki OpenCV
+import numpy as np                      # import biblioteki NumPy
+
+def main():
+    # Wczytanie wytrenowanej sieci neuronowej z plików konfiguracyjnych i wag
+    net = cv2.dnn.readNet("model.pbtxt", "weights.pb")
+
+    # Odczyt etykiet klas z pliku tekstowego, każda etykieta w osobnej linii
+    file = open("labels.txt", "r")
+    labels = file.read().split("\n")
+
+    # Uruchomienie kamery
+    cap = cv2.VideoCapture(0)
+    
+    while True:
+        # Odczyt pojedynczej klatki z kamery
+        ret, img = cap.read()
+        if not ret:               # jeśli klatki nie można odczytać (np. koniec streamu), zakończ pętlę
+            break
+        
+        # Wymiary klatki (wysokość i szerokość)
+        h, w = img.shape[:2]
+
+        # Konwersja obrazu do formatu blob wymaganego przez model DNN
+        # Normalizacja pikseli: (piksel - mean)/scalefactor
+        blob = cv2.dnn.blobFromImage(
+            img,
+            scalefactor=1.0/127.5,              # skaluje wartości pikseli z [0,255] do [-1,1]
+            size=(300, 300),                    # rozmiar wejściowy sieci (300x300)
+            crop=False,                        # nie przycinamy obrazu, tylko skalujemy proporcjonalnie
+            mean=(127.5, 127.5, 127.5),       # wartość średnia do odjęcia od każdego kanału (B,G,R)
+            swapRB=True                       # zamiana kanałów BGR na RGB
+        )
+
+        # Ustawienie przygotowanego blobu jako wejścia do sieci
+        net.setInput(blob)
+
+        # Forward pass przez sieć - uzyskanie detekcji
+        detection = net.forward()
+
+        # Próg minimalnej pewności (confidence) wykrycia, by filtrować słabe wyniki
+        confidence = 0.6
+
+        # Iteracja po wszystkich wykrytych obiektach
+        for roi in detection[0, 0, :, :]:
+            current_confidence = roi[2]          # prawdopodobieństwo wykrycia obiektu
+            
+            # Sprawdzamy, czy pewność jest wyższa niż próg
+            if current_confidence > confidence:
+                label = labels[int(roi[1]-1)]   # pobieramy etykietę klasy (indeks z sieci -1)
+                
+                # Koordynaty wykrytego obiektu (procentowe) przeliczone na piksele obrazu
+                box = roi[3:7] * np.array([w, h, w, h])
+                box = box.astype(np.uint16)     # zamiana na liczby całkowite
+                
+                print(label, box)               # wypisanie nazwy i prostokąta wykrycia
+                
+                # Tekst do wyświetlenia na obrazie: nazwa klasy + pewność w %
+                text = f"{label}: {current_confidence*100:.2f}%"
+                
+                # Narysowanie prostokąta wokół wykrytego obiektu (kolor zielony, grubość 2)
+                cv2.rectangle(img, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2)
+                
+                # Dodanie tekstu z nazwą i pewnością nad prostokątem
+                cv2.putText(
+                    img, text,
+                    (box[0], box[1]),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=1,
+                    color=(0, 255, 0)
+                )
+
+        # Wyświetlenie obrazu z naniesionymi detekcjami
+        cv2.imshow("", img)
+        
+        # Czekanie 1 ms na klawisz, by odświeżyć obraz
+        cv2.waitKey(1)
+
+if __name__ == '__main__':
+    main()      # uruchomienie głównej funkcji programu

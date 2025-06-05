@@ -1,0 +1,102 @@
+import math                     # import modułu matematycznego do funkcji takich jak pi czy sin
+import numpy as np              # import biblioteki numpy do pracy z tablicami i macierzami
+import matplotlib.pyplot as plt # import matplotlib do rysowania wykresów i wyświetlania obrazów
+
+SIZE = (100, 100)              # definiujemy rozmiar obrazów (wysokość i szerokość)
+IMSHOW_ARGS = {"vmin": 0, "vmax": 255, "cmap": 'gray'}  # argumenty dla plt.imshow: zakres wartości i mapa kolorów (szarości)
+
+def ex1():
+    array_1d = np.array([1, 2, 3, 4, 5], dtype=np.uint8)  # tworzymy 1-wymiarową tablicę numpy z 5 elementami typu uint8
+    array_2d = np.array([[1, 2, 3], [4, 5, 6]])          # tworzymy 2-wymiarową tablicę 2x3 z podanymi wartościami
+
+    print(f'array_1d: {array_1d}, shape: {array_1d.shape}, dtype: {array_1d.dtype}')  # wyświetlamy zawartość, kształt i typ danych tablicy 1D
+    print(f'array_2d: {array_2d}, shape: {array_2d.shape}, dtype: {array_2d.dtype}')  # wyświetlamy zawartość, kształt i typ danych tablicy 2D
+
+def ex2():
+    img = np.zeros(SIZE, dtype=np.uint8)   # tworzymy czarny obraz o rozmiarze SIZE (wszystkie piksele 0)
+    img[35, 77] = 255                      # ustawiamy konkretny piksel (35,77) na biały (255)
+    plt.imshow(img, cmap='gray')           # wyświetlamy obraz w skali szarości
+    plt.show()                            # pokazujemy okno z obrazem
+
+def ex3():
+    img = np.random.randint(0, 256, size=SIZE)  # tworzymy losowy obraz z wartościami pikseli 0-255
+    plt.imshow(img, cmap='gray')                 # wyświetlamy obraz w skali szarości
+    plt.show()                                   # pokazujemy okno z obrazem
+
+def ex4(show=False):
+    img_normal = np.random.normal(loc=127, scale=1, size=SIZE)  # generujemy obraz z wartościami z rozkładu normalnego (średnia=127, odchylenie=1)
+    img_uniform = np.random.randint(0, 256, size=SIZE, dtype=np.uint8)  # generujemy obraz z wartościami z rozkładu jednostajnego (0-255)
+
+    if show:                                     # jeśli show jest True
+        _, (ax_normal, ax_uniform) = plt.subplots(1, 2)  # tworzymy 2 wykresy obok siebie
+        ax_normal.imshow(img_normal)             # wyświetlamy obraz z rozkładem normalnym
+        ax_uniform.imshow(img_uniform)           # wyświetlamy obraz z rozkładem jednostajnym
+        plt.show()                               # pokazujemy okno z wykresami
+    
+    return img_uniform, img_normal               # zwracamy oba obrazy (uniform i normal)
+
+def ex5(img, brightness, contrast):
+    # Modyfikujemy obraz przez zmianę kontrastu i jasności:
+    # najpierw kopiujemy obraz, konwertujemy na float32, mnożymy przez kontrast, dodajemy jasność,
+    # ograniczamy wartości do zakresu [0, 255], a potem zamieniamy z powrotem na uint8
+    img = np.clip(img.copy().astype(np.float32) * contrast + brightness, 0, 255).astype(np.uint8)
+    return img                                   # zwracamy zmodyfikowany obraz
+
+def ex7(img):
+    img = img.copy()                            # kopiujemy obraz, by nie zmieniać oryginału
+    y = 20                                     # współrzędna Y (pionowa) prostokąta
+    x = 30                                     # współrzędna X (pozioma) prostokąta
+    h = 40                                     # wysokość prostokąta
+    w = 50                                     # szerokość prostokąta
+    img[y:y+h, x:x+w] = 255                     # ustawiamy prostokąt pikseli na biały (255)
+    return img                                  # zwracamy zmodyfikowany obraz
+
+def ex8(img):
+    img = img.copy()                            # kopiujemy obraz, by nie zmieniać oryginału
+    img = 255 - img                            # negujemy obraz: odwracamy jasność (negatyw)
+    return img                                  # zwracamy negatyw
+
+def ex9():
+    line = np.linspace(0, 255, SIZE[0], dtype=np.uint8)  # tworzymy liniowy gradient wartości od 0 do 255 o długości SIZE[0]
+    img = np.tile(line, (SIZE[1], 1))                     # powielamy linię w pionie, tworząc obraz gradientowy
+    return img                                            # zwracamy gradientowy obraz
+
+def ex10():
+    freq = 5                                         # częstotliwość fali sinusoidalnej
+    x = np.linspace(0, math.pi * 2 * freq, 100)     # 100 punktów od 0 do 2π * freq
+    y = np.sin(x)                                    # obliczamy wartości sinusa dla x
+    plt.figure()                                     # tworzymy nowy wykres
+    plt.plot(x, y)                                   # rysujemy wykres funkcji sinus
+    plt.show()                                       # pokazujemy wykres
+
+def ex11():
+    freq = 5                                         # częstotliwość
+    x = np.linspace(0, np.pi * 2 * freq, 100)       # generujemy 100 punktów liniowo
+    xx, yy = np.meshgrid(x, x)                       # tworzymy siatkę współrzędnych 2D
+    xx = np.sin(xx)                                  # obliczamy sinus na osi X
+    return xx                                        # zwracamy wynikową tablicę
+
+def ex12():
+    freq = 5                                         # częstotliwość
+    x = np.linspace(0, np.pi * 2 * freq, 100)       # generujemy 100 punktów liniowo
+    xx, yy = np.meshgrid(x, x)                       # tworzymy siatkę współrzędnych 2D
+    yy = np.sin(yy)                                  # obliczamy sinus na osi Y
+    return yy                                        # zwracamy wynikową tablicę
+
+def ex13():
+    freq = 5                                         # częstotliwość
+    x = np.linspace(0, np.pi * 2 * freq, 100)       # generujemy 100 punktów liniowo
+    xx, yy = np.meshgrid(x, x)                       # tworzymy siatkę współrzędnych 2D
+    xx = np.sin(xx)                                  # sinus na osi X
+    yy = np.sin(yy)                                  # sinus na osi Y
+    return (xx + yy) * 127 + 127                      # sumujemy sinusy, skalujemy i przesuwamy do zakresu [0,255]
+
+def ex14(img, mask):
+    return img * mask                                # mnożymy element po elemencie obraz i maskę (maskowanie)
+
+if __name__ == '__main__':
+    img, _ = ex4(False)                             # generujemy obraz z rozkładem jednostajnym i normalnym, nie wyświetlamy
+    _, axes = plt.subplots(1, 2)                    # tworzymy figurę z dwoma podwykresami obok siebie
+    axes[0].imshow(ex13(), **IMSHOW_ARGS)           # wyświetlamy obraz z sumą sinusoid na pierwszym podwykresie
+    axes[1].imshow(ex14(img, ex13()))                # wyświetlamy obraz pomnożony przez maskę sinusoid na drugim podwykresie
+    plt.show()                                       # pokazujemy całość

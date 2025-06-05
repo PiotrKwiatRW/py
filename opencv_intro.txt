@@ -1,0 +1,108 @@
+import cv2                  # import biblioteki OpenCV do przetwarzania obrazu i video
+from viewer import *        # import klas i funkcji z modułu viewer (zakładam, że jest w tym samym katalogu)
+
+def ex1():
+    img = cv2.imread("tekstura_grzybka.png")  # wczytanie obrazu z pliku
+    cv2.imshow("", img)                        # wyświetlenie obrazu w nowym oknie
+    cv2.waitKey(0)                            # czekanie na dowolny klawisz, by zamknąć okno
+
+def ex2():
+    capture = cv2.VideoCapture(0)             # uruchomienie kamery (indeks 0)
+    while True:
+        ret, frame = capture.read()           # odczyt klatki z kamery
+        if not ret:                           # jeśli nie udało się odczytać (np. kamera wyłączona), przerywamy pętlę
+            break
+        cv2.imshow('', frame)                  # pokazujemy aktualną klatkę
+        if cv2.waitKey(1) == ord('q'):        # jeśli wciśnięto 'q', wychodzimy z pętli
+            break
+
+def ex3():
+    cv2.namedWindow('window')                 # tworzymy okno o nazwie 'window'
+    capture = cv2.VideoCapture(0)             # uruchamiamy kamerę
+    # tworzymy suwak (trackbar) o nazwie 'slider', początkowa wartość 256, max 511, z funkcją zwrotną która nic nie robi
+    cv2.createTrackbar('slider', 'window', 256, 256 * 2 - 1, lambda x:None)
+    while True:
+        ret, frame = capture.read()           # czytamy klatkę
+        if not ret:
+            break
+        # pokazujemy obraz z dodaną wartością z suwaka przesuniętą o -256 (by wartość była od -256 do +255)
+        cv2.imshow('window', cv2.add(frame, cv2.getTrackbarPos('slider', 'window') - 256))
+        if cv2.waitKey(1) == ord('q'):        # wychodzimy po 'q'
+            break
+
+# Poniżej definicja klas widoków
+
+import cv2
+import numpy as np
+
+class Viewer:
+    def __init__(self, initial_value, max_value):
+        cv2.namedWindow('window')                     # tworzymy okno 'window'
+        self.capture = cv2.VideoCapture(0)            # uruchamiamy kamerę (indeks 0)
+        # tworzymy suwak 'slider' z początkową i maksymalną wartością, callback lambda nic nie robi
+        cv2.createTrackbar('slider', 'window', initial_value, max_value, lambda x:None)
+
+    def get_trackbar_pos(self):
+        # pobieramy aktualną wartość suwaka 'slider' z okna 'window'
+        return cv2.getTrackbarPos('slider', 'window')
+
+    def process_frame(self, frame, trackbar_pos):
+        # metoda do nadpisania w klasach pochodnych - przetwarza klatkę w zależności od pozycji suwaka
+        return frame
+
+    def run(self):
+        while True:
+            ret, frame = self.capture.read()           # czytamy klatkę z kamery
+            if not ret:
+                break
+            trackbar_pos = self.get_trackbar_pos()     # pobieramy aktualną wartość suwaka
+            frame = self.process_frame(frame, trackbar_pos)  # przetwarzamy klatkę
+            cv2.imshow('window', frame)                 # wyświetlamy przetworzoną klatkę
+            if cv2.waitKey(1) == ord('q'):              # wychodzimy po 'q'
+                break
+
+class BrightnessViewer(Viewer):
+    def __init__(self):
+        super().__init__(256, 256 * 2 - 1)           # suwak od 0 do 511, start 256 (wartość przesunięta)
+
+    def get_trackbar_pos(self):
+        return super().get_trackbar_pos() - 256      # przesunięcie zakresu do -256..+255
+
+    def process_frame(self, frame, trackbar_pos):
+        # dodajemy jasność do obrazu
+        return cv2.add(frame, trackbar_pos)
+
+class BlurViewer(Viewer):
+    def __init__(self):
+        super().__init__(1, 300)                      # suwak od 1 do 300 (kernel size)
+
+    def get_trackbar_pos(self):
+        # kernel rozmycia musi być nieparzysty, więc konwertujemy suwak: np 1->3, 2->5 itd.
+        return super().get_trackbar_pos() * 2 + 1
+
+    def process_frame(self, frame, trackbar_pos):
+        # rozmywamy obraz za pomocą filtra Gaussa o rozmiarze kernel = trackbar_pos x trackbar_pos
+        return cv2.GaussianBlur(frame, (trackbar_pos, trackbar_pos), 0)
+
+class MedianViewer(Viewer):
+    def __init__(self):
+        super().__init__(1, 100)                      # suwak 1-100
+
+    def get_trackbar_pos(self):
+        # kernel medianowy też musi być nieparzysty
+        return super().get_trackbar_pos() * 2 + 1
+
+    def process_frame(self, frame, trackbar_pos):
+        # stosujemy rozmycie medianowe
+        return cv2.medianBlur(frame, trackbar_pos)
+
+class HsvViewer(Viewer):
+    def __init__(self):
+        super().__init__(0, 180)                      # suwak 0-180 (zakres odcienia w HSV)
+
+    def process_frame(self, frame, trackbar_pos):
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)    # konwersja obrazu do przestrzeni HSV
+        h = hsv[:, :, 0].astype(int)                      # pobieramy kanał H (odcień), konwertujemy na int by móc dodać
+        h = (h + trackbar_pos) % 180                      # dodajemy wartość ze suwaka i bierzemy modulo 180 (zakres odcienia)
+        hsv[:, :, 0] = h.astype(np.uint8)                 # zapisujemy z powrotem jako uint8
+        return cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)       # konwersja z powrotem do BGR i zwrócenie obrazu
